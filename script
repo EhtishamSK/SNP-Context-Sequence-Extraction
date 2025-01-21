@@ -1,0 +1,38 @@
+# Script to download a Capsicum annuum genome, decompress it, index it, and extract context sequences based on given coordinates from a CSV file.
+# This script is intended to be used in a Linux environment.
+
+# Step 1: Download the Capsicum annuum genome in FASTA format from Ensembl FTP server
+# The file will be downloaded as a compressed `.gz` file.
+echo "Downloading the Capsicum annuum genome..."
+wget https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-60/fasta/capsicum_annuum/dna/Capsicum_annuum.ASM51225v2.dna.toplevel.fa.gz
+
+# Step 2: Decompress the downloaded genome file
+# After downloading, decompress the file using gzip.
+echo "Decompressing the genome file..."
+gzip -d Capsicum_annuum.ASM51225v2.dna.toplevel.fa.gz
+
+# Step 3: Index the reference genome using samtools
+# The genome must be indexed to allow fast sequence retrieval.
+echo "Indexing the genome..."
+samtools faidx Capsicum_annuum.ASM51225v2.dna.toplevel.fa
+
+# Step 4: Prepare the input CSV file for sequence extraction
+# Assume the CSV file contains the following columns: SNP, Chr, position, upstream, downstream.
+# Convert the CSV file into a BED file containing chromosome, start position, and end position.
+# The upstream and downstream columns define the flanking regions.
+# The length of the flanking sequences depends on your research objective.
+# For this study, it was 20 bp upstream and downstream of the SNP coordinates.
+# Make sure that the start position is smaller than the end position to avoid errors in the extraction process.
+# You can transfer the SNP coordinates file (fs.csv) from your local machine to the server using FileZilla.
+echo "Converting the CSV file into a BED file..."
+awk -F, 'NR>1 {print $2 "\t" $4 "\t" $5}' fs.csv > flanking_region.bed
+
+# Step 5: Extract the context sequences using bedtools getfasta
+# Using the indexed genome and the BED file, extract sequences from the specified regions.
+# The output will be saved as fs.fa in FASTA format.
+echo "Extracting context sequences..."
+bedtools getfasta -fi Capsicum_annuum.ASM51225v2.dna.toplevel.fa -bed flanking_region.bed -fo fs.fa
+
+# Step 6: Output completion message
+# The extracted sequences are saved in the fs.fa file, which contains the context sequences.
+echo "Context sequences have been successfully extracted and saved in fs.fa."
